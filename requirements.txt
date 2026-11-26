@@ -1,0 +1,8 @@
+# torch and torchvision are not listed: use the CUDA build that comes with your
+# GPU image (or install it from pytorch.org) so pip does not replace it.
+transformers==5.24.0
+datasets==5.2.0
+peft==0.22.0
+accelerate==1.16.0
+pillow
+scikit-image
