@@ -128,12 +128,23 @@ for epoch in range(NUM_EPOCHS):
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
             loss = model(**batch).loss
 
-        (loss/GRAD_ACCUM).backward()
-        running_loss += loss.item()/GRAD_ACCUM
-        
+        # A single nan/inf loss would turn every LoRA weight into nan, so skip it
+        if torch.isfinite(loss):
+            (loss/GRAD_ACCUM).backward()
+            running_loss += loss.item()/GRAD_ACCUM
+        else:
+            print(f"Skipping batch {step}: loss={loss.item()} "
+                  f"seq_len={batch['input_ids'].shape[1]} "
+                  f"answer_tokens={(batch['labels'] != -100).sum().item()} "
+                  f"image_grid_thw={batch['image_grid_thw'].tolist()}")
+
         if (step + 1) % GRAD_ACCUM == 0:
             grad_norm = torch.nn.utils.clip_grad_norm_(trainable_params, 1.)
-            optimizer.step()
+            # nan/inf gradients: drop this update instead of writing nan into the weights
+            if torch.isfinite(grad_norm):
+                optimizer.step()
+            else:
+                print(f"Skipping update at step {global_step}: grad norm is {grad_norm}")
             scheduler.step()
             optimizer.zero_grad()
             global_step += 1
@@ -148,7 +159,8 @@ for epoch in range(NUM_EPOCHS):
 
                 model.eval()
                 total_val_loss = 0
-                
+                val_batches = 0
+
                 with torch.no_grad():
                     for _, val_batch in enumerate(val_loader):
                         val_batch = val_batch.to(device)
@@ -156,10 +168,14 @@ for epoch in range(NUM_EPOCHS):
                         with torch.autocast(device_type=device, dtype=torch.bfloat16):
                             val_loss = model(**val_batch).loss
 
-                        total_val_loss += val_loss.item()
-                    avg_val_loss = total_val_loss/len(val_loader)
+                        # same guard: one nan batch would make the whole average nan
+                        if torch.isfinite(val_loss):
+                            total_val_loss += val_loss.item()
+                            val_batches += 1
+                    avg_val_loss = total_val_loss/max(val_batches, 1)
 
-                print(f"Validation Loss: {avg_val_loss}")
+                skipped = len(val_loader) - val_batches
+                print(f"Validation Loss: {avg_val_loss} (skipped {skipped} non-finite batches)")
                 if avg_val_loss < best_val_loss:
                     best_val_loss = avg_val_loss
                     model.save_pretrained(f"{OUTPUT_DIR}checkpoint_{global_step}/")
