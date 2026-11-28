@@ -14,12 +14,23 @@
     "@babel/parser": "^7.29.15",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@material-ui/core": "^4.12.4",
     "@mui/material": "^9.6.0",
+    "draft-js": "^0.11.7",
     "esbuild": "^0.28.2",
+    "formik": "^2.4.9",
     "playwright": "^1.65.1",
     "postcss": "^8.5.33",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "recharts": "^3.11.1"
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.10",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^20.2.1",
+    "react-router-dom": "^5.3.4",
+    "react-spring": "^10.0.4",
+    "react-toastify": "^11.2.0",
+    "recharts": "^3.11.1",
+    "yup": "^1.7.1"
   }
 }
